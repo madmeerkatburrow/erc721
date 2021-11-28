@@ -1898,36 +1898,24 @@ interface IBEP20 {
 contract MadMeerkatBurrow is ERC721, Ownable, ReentrancyGuard {
     using SafeMath for uint256;
     uint256 public constant MAX_MEERKAT_PURCHASE = 20; // max purchase per txn
-    uint256 public constant MAX_MEERKAT = 5000; // max of 5,000 meerkats
+    uint256 public constant MAX_MEERKAT = 10000; // max of 10,000 meerkats
 
     string public MMB_PROVENANCE = "";
-    uint public meerkatPrice = 5 ether / 100;
-    uint public reservedMeerkats = 400;
+    uint public meerkatPrice = 299 ether;
+    uint public meerkatPricePresale1 = 249 ether;
+    uint public meerkatPricePresale2 = 199 ether;
+    
+    uint public reservedMeerkats = 1000;
+    uint public presale1ReservedMeerkats = 500;
+    uint public presale2ReservedMeerkats = 500;
 
     bool public saleIsActive = false; // determines whether sales is active
     bool public presale1Active = false; // determines whether presale 1 is active
     bool public presale2Active = false; // determines whether presale 2 is active
-    uint public maxPurchasePresale1 = 5;
-    uint public maxPurchasePresale2 = 3;
-
-    mapping(address => bool) public whitelist1;
-    mapping(address => bool) public whitelist2;
-    mapping(address => uint) public presaleMints1;
-    mapping(address => uint) public presaleMints2;
 
     event AssetMinted(address account, uint256 tokenId);
 
     constructor() ERC721("MadMeerkatBurrow", "MMB") {}
-
-    /* ========== Public views ========== */
-
-    function isWhitelistedPresale1(address addr) public view returns (bool) {
-        return whitelist1[addr];
-    }
-
-    function isWhitelistedPresale2(address addr) public view returns (bool) {
-        return whitelist2[addr];
-    }
 
     /* ========== External public sales functions ========== */
 
@@ -1949,14 +1937,12 @@ contract MadMeerkatBurrow is ERC721, Ownable, ReentrancyGuard {
 
     function presaleMintMeerkat1(uint256 numberOfTokens) public payable nonReentrant {
         require(presale1Active);
-        require(numberOfTokens <= maxPurchasePresale1); // max of 5 can be bought at one time during presale
-        require(isWhitelistedPresale1(msg.sender));
-        require(numberOfTokens.mul(meerkatPrice) <= msg.value);
-        require(presaleMints1[msg.sender] + numberOfTokens <= maxPurchasePresale1); // each user can only get 5 items in presale max
+        require(numberOfTokens <= MAX_MEERKAT_PURCHASE); // max of 20 can be bought in one txn
+        require(numberOfTokens.mul(meerkatPricePresale1) <= msg.value);
         require(totalSupply().add(numberOfTokens) <= MAX_MEERKAT.sub(reservedMeerkats)); // Max supply exceeded
+        presale1ReservedMeerkats = presale1ReservedMeerkats.sub(numberOfTokens); // max of 500 tokens to be sold
 
         for (uint256 i = 0; i < numberOfTokens; i++) {
-            presaleMints1[msg.sender] += 1;
             emit AssetMinted(msg.sender, totalSupply() + 1);
 
             _mint(msg.sender, totalSupply() + 1);
@@ -1965,14 +1951,12 @@ contract MadMeerkatBurrow is ERC721, Ownable, ReentrancyGuard {
 
     function presaleMintMeerkat2(uint256 numberOfTokens) public payable nonReentrant {
         require(presale2Active);
-        require(numberOfTokens <= maxPurchasePresale2); // max of 3 can be bought at one time during presale
-        require(isWhitelistedPresale2(msg.sender));
-        require(numberOfTokens.mul(meerkatPrice) <= msg.value);
-        require(presaleMints2[msg.sender] + numberOfTokens <= maxPurchasePresale2); // each user can only get 3 items in presale max
+        require(numberOfTokens <= MAX_MEERKAT_PURCHASE); // max of 20 can be bought in one txn
+        require(numberOfTokens.mul(meerkatPricePresale2) <= msg.value);
         require(totalSupply().add(numberOfTokens) <= MAX_MEERKAT.sub(reservedMeerkats)); // Max supply exceeded
+        presale2ReservedMeerkats = presale2ReservedMeerkats.sub(numberOfTokens); // max of 500 tokens to be sold
 
         for (uint256 i = 0; i < numberOfTokens; i++) {
-            presaleMints2[msg.sender] += 1;
             emit AssetMinted(msg.sender, totalSupply() + 1);
 
             _mint(msg.sender, totalSupply() + 1);
@@ -1980,29 +1964,6 @@ contract MadMeerkatBurrow is ERC721, Ownable, ReentrancyGuard {
     }
 
     /* ========== External owner functions ========== */
-
-    // @dev add user to whitelist for presale
-    function addToWhitelist1(address[] memory addrs) public onlyOwner {
-        for (uint256 i = 0; i < addrs.length; i++) {
-            whitelist1[addrs[i]] = true;
-            presaleMints1[addrs[i]] = 0;
-        }
-    }
-
-    function addToWhitelist2(address[] memory addrs) public onlyOwner {
-        for (uint256 i = 0; i < addrs.length; i++) {
-            whitelist2[addrs[i]] = true;
-            presaleMints2[addrs[i]] = 0;
-        }
-    }
-    
-    function setMaxPurchasePresale1(uint256 max) public onlyOwner {
-        maxPurchasePresale1 = max;
-    }
-
-    function setMaxPurchasePresale2(uint256 max) public onlyOwner {
-        maxPurchasePresale2 = max;
-    }
 
     // @dev mints meerkat as giveaways
     function giveAway(address to, uint numberOfTokens) external nonReentrant onlyOwner {
@@ -2054,6 +2015,16 @@ contract MadMeerkatBurrow is ERC721, Ownable, ReentrancyGuard {
     // @dev sets price of meerkat
     function setMeerkatPrice(uint256 _price) external onlyOwner {
         meerkatPrice = _price;
+    }
+    
+    // @dev sets price of meerkat
+    function setMeerkatPresalePrice1(uint256 _price) external onlyOwner {
+        meerkatPricePresale1 = _price;
+    }
+    
+    // @dev sets price of meerkat
+    function setMeerkatPresalePrice2(uint256 _price) external onlyOwner {
+        meerkatPricePresale2 = _price;
     }
     
     // @dev set provenance once it's calculated

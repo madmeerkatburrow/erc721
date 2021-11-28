@@ -1,0 +1,16 @@
+node_modules
+yarn.lock
+secrets.json
+cache
+.vscode
+artifacts
+typechain
+.openzeppelin
+
+test
+migrations
+git-config.sh
+.debris
+generated
+.DS_Store
+hardhat.config.ts
